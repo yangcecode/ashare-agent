@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# 运行产生的状态（本地对话历史、自选股）
+*.sqlite
+*.sqlite-*
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# 环境变量（可能含 token）
+.env
+.env.local
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+*.log
