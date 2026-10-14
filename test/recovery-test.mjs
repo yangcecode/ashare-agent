@@ -7,8 +7,8 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { AssistantEntry, Harness, createRegistry } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
-import { StockTools } from "./tools.mjs";
-import { localGatewayProvider } from "./local-provider.mjs";
+import { StockTools } from "../src/agent/tools.mjs";
+import { localGatewayProvider } from "../src/model/local-provider.mjs";
 
 const DB = "./crash.sqlite";
 const JOB = { type: "input", content: "给我 600519 和 300750 的技术指标", requestId: "crash-job" };

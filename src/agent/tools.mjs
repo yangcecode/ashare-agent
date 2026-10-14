@@ -5,7 +5,8 @@
  */
 import { Type } from "@earendil-works/pi-ai";
 import { defineDoc, defineExtension, defineTool, section } from "@earendil-works/pi-durable";
-import { computeIndicators, fetchDailyBars, fetchQuotes } from "./market.mjs";
+import { fetchDailyBars, fetchQuotes } from "../data/market.mjs";
+import { computeIndicators } from "../data/indicators.mjs";
 
 // ----------------------------------------------------------- 自选股（持久状态）
 export const Watchlist = defineDoc({

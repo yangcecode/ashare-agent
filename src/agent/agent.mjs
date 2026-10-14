@@ -17,7 +17,7 @@ import {
 } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { STOCK_INSTRUCTIONS, StockTools, Watchlist } from "./tools.mjs";
-import { localGatewayProvider } from "./local-provider.mjs";
+import { localGatewayProvider } from "../model/local-provider.mjs";
 
 // 模型：默认用本地网关（127.0.0.1:3425）。
 // 换真 Anthropic 直接改这两个常量（或设环境变量）。

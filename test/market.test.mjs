@@ -1,6 +1,7 @@
 // 自检：指标公式必须对得上手算结果，否则整个分析都是错的。
 import assert from "node:assert";
-import { sma, ema, rsi, macd, maxDrawdown, volatility, toTencentSymbol, computeIndicators } from "./market.mjs";
+import { toTencentSymbol } from "../src/data/market.mjs";
+import { sma, ema, rsi, macd, maxDrawdown, volatility, computeIndicators } from "../src/data/indicators.mjs";
 
 // sma
 assert.equal(sma([1, 2, 3, 4, 5], 5), 3);
@@ -48,4 +49,4 @@ assert.equal(short.ma20, undefined);
 assert.equal(short.rsi14, undefined);
 assert.ok(Array.isArray(short.signals));
 
-console.log("market.mjs 自检通过");
+console.log("指标自检通过");

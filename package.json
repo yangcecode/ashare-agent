@@ -5,8 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node market.test.mjs",
-    "start": "node agent.mjs"
+    "test": "node test/market.test.mjs",
+    "start": "node src/agent/agent.mjs",
+    "recovery": "node test/recovery-test.mjs"
   },
   "license": "MIT",
   "dependencies": {

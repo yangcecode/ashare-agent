@@ -14,12 +14,36 @@
 ```bash
 npm install
 
-npm test                                  # 指标公式自检（不联网）
-node agent.mjs --add 600519 300750        # 加自选（不走模型）
-node agent.mjs "看看我的自选股"             # 问模型，它会调工具拿真实数据
-node agent.mjs "宁德时代现在什么情况"        # 单只分析
-node agent.mjs "今天大盘怎么样"              # 主要指数
-node agent.mjs --history                    # 看 transcript / 自选 / 用量
+npm test                                        # 指标公式自检（不联网）
+node src/agent/agent.mjs --add 600519 300750    # 加自选（不走模型）
+node src/agent/agent.mjs "看看我的自选股"         # 问模型，它会调工具拿真实数据
+node src/agent/agent.mjs "宁德时代现在什么情况"    # 单只分析
+node src/agent/agent.mjs "今天大盘怎么样"          # 主要指数
+node src/agent/agent.mjs --history                # 看 transcript / 自选 / 用量
+```
+
+也可以走 npm scripts：
+
+```bash
+npm start -- --add 600519          # = node src/agent/agent.mjs --add 600519
+npm run recovery                   # 崩溃恢复演示（先阶段一杀进程，再跑一次续跑）
+```
+
+## 目录结构
+
+```
+src/
+  data/
+    market.mjs        取数：实时行情 + 前复权日线（腾讯公开接口）
+    indicators.mjs    指标：纯函数，MA/RSI/MACD/波动率/回撤
+  agent/
+    tools.mjs         六个 agent 工具 + 自选股 document
+    agent.mjs         CLI 入口
+  model/
+    local-provider.mjs  本地 OpenAI 兼容网关 provider
+test/
+  market.test.mjs     指标公式断言自检
+  recovery-test.mjs   崩溃恢复演示
 ```
 
 状态存在 `stock.sqlite`，删掉就归零。指数、指标公式都是实测过的。
@@ -75,8 +99,8 @@ http://127.0.0.1:3425/v1   OpenAI Chat Completions 兼容
 换模型：
 
 ```bash
-STOCK_MODEL=group/auto-gpt-5-4 node agent.mjs "看看自选"
-LOCAL_MODEL_BASE_URL=http://127.0.0.1:8000/v1 LOCAL_MODEL_TOKEN=xxx node agent.mjs "..."
+STOCK_MODEL=group/auto-gpt-5-4 node src/agent/agent.mjs "看看自选"
+LOCAL_MODEL_BASE_URL=http://127.0.0.1:8000/v1 LOCAL_MODEL_TOKEN=xxx node src/agent/agent.mjs "..."
 ```
 
 `local-provider.mjs` 用 `openAICompletionsApi()` 复用 pi-ai 的 chat completions 实现，不自己写协议。
