@@ -14,8 +14,8 @@ export function toTencentSymbol(code) {
 	const c = String(code).trim().toUpperCase();
 	if (/^(SH|SZ|BJ)\d{6}$/.test(c)) return c.toLowerCase();
 	if (/^\d{6}$/.test(c)) {
-		if (/^(60|68|9)/.test(c)) return "sh" + c; // 沪市主板/科创板/B股
-		if (/^(00|30|2)/.test(c)) return "sz" + c; // 深市主板/创业板/B股
+		if (/^(5|6)/.test(c)) return "sh" + c; // 沪市：60 主板 / 68 科创板 / 5 沪市基金ETF / 9 B股
+		if (/^(0|1|2|3)/.test(c)) return "sz" + c; // 深市：00 主板 / 30 创业板 / 15,16,18 基金ETF / 1 债 / 2 B股
 		if (/^(4|8)/.test(c)) return "bj" + c; // 北交所
 		return "sh" + c;
 	}

@@ -1,8 +1,11 @@
-# A 股分析 agent
+# A 股研究助理（durable agent）
 
-一个跑得久、崩溃能续、状态持久化的 A 股分析 agent，用 LLM 调工具拿真实行情和指标。
+一个**长跑的 durable agent 助理**：你给它目标，它自己决定调什么工具、要不要派子 agent、记什么进档案。
+不是固定流水线——**循环和决策都是模型的事**，代码只提供工具和持久状态。
 
-**只分析中国 A 股**（沪市 / 深市 / 创业板 / 科创板 / 北交所 + 主要指数）。
+状态（transcript / 自选股 / 档案 / 子 agent）全在 `stock.sqlite` 里，随时中断、重跑，从断点续。
+
+**只分析中国 A 股**（沪市 / 深市 / 创业板 / 科创板 / 北交所 + 场内 ETF）。
 不需要任何数据源的 API key。
 
 基于 [`@earendil-works/pi-durable`](https://www.npmjs.com/package/@earendil-works/pi-durable)（durable agent harness）+ `pi-ai`。
@@ -15,19 +18,67 @@
 npm install
 
 npm test                                        # 指标公式自检（不联网）
-node src/agent/agent.mjs --add 600519 300750    # 加自选（不走模型）
-node src/agent/agent.mjs "看看我的自选股"         # 问模型，它会调工具拿真实数据
-node src/agent/agent.mjs "宁德时代现在什么情况"    # 单只分析
-node src/agent/agent.mjs "今天大盘怎么样"          # 主要指数
-node src/agent/agent.mjs --history                # 看 transcript / 自选 / 用量
+npm run recovery                                # 崩溃恢复演示：工具跑一半杀进程，重开续跑
+
+node src/agent/agent.mjs --add 600519 510300    # 加自选（不走模型）
+node src/agent/agent.mjs "看看我的自选，有异动的深挖一下"
+node src/agent/agent.mjs "派子 agent 分别深挖茅台和沪深300"
+node src/agent/agent.mjs --watch                # 常驻：开市时段整点自动检查
+node src/agent/agent.mjs --history              # 看 transcript / 自选 / 档案 / 子 agent / 用量
 ```
 
-也可以走 npm scripts：
+## 它怎么工作
+
+一次典型的自动检查（`--watch` 每小时一条，或你手动问）：
+
+```
+你：看看我的自选，有异动的深挖一下
+  ├─ market_status      现在开市吗
+  ├─ quote              自选股实时行情
+  ├─ indicators         技术指标（模型自己决定用多少根日线）
+  ├─ market_overview    大盘环境，判断是否逆市
+  ├─ disclosures        新闻+公告（去重，只给新的）
+  ├─ subagent           派子 agent 深挖（可选，子 agent 有独立对话）
+  └─ save_finding       值得记的结论进长期档案
+→ 一段自的分析 + 档案里多了几条
+```
+
+**关键**：调什么、调几次、记不记、要不要派子 agent，都是模型看数据后决定的。
+代码里**没有**「每只股票都调一次 LLM」这种写死的流程。
+
+## Web 界面
+
+浏览器里用，比终端舒服。**本地跑，不需要 Cloudflare。**
 
 ```bash
-npm start -- --add 600519          # = node src/agent/agent.mjs --add 600519
-npm run recovery                   # 崩溃恢复演示（先阶段一杀进程，再跑一次续跑）
+npm run web
+# 打开 http://127.0.0.1:8420
 ```
+
+页面上能做这些：
+
+- **对话** — 下面输入框发一句，助理流式回答（打字机效果），工具调用以标签显示
+- **自选股** — 右侧直接加/删，不走模型
+- **档案** — 助理记下的结论，带倾向标签和 tags
+- **子 agent** — 派出去的子 agent 及它们的最新输出
+- 顶部有「运行中/空闲」和「停」按钮，底部显示 token 用量
+
+**重要**：一个 storage 同时只能被一个进程拥有。所以：
+
+- Web 服务开着时，**不要再跑 `npm start` 或 `npm run watch`**
+- 要跑 CLI，先把 Web 服务 Ctrl-C 停掉
+- 端口被占：`PORT=9000 npm run web`
+
+### 它是怎么推的
+
+用 SSE（`/api/stream`）。**不是**每次都全量重推：
+
+| 帧 | 内容 | 何时 |
+|---|---|---|
+| 轻量帧 | transcript + `pi.live`（正在跑的生成/工具/部分答复） | 每次 commit，120ms 合并 |
+| 完整帧 | 上面 + 自选股 / 档案 / 子 agent / 用量 | run 开始、结束、或你手动操作后 |
+
+分开的原因：读 doc（档案、子 agent）比读 view 慢得多，跟着流式帧一起推会把打字机效果拖死——实测从 3 帧变 16 帧。
 
 ## 目录结构
 
@@ -37,16 +88,23 @@ src/
     market.mjs        取数：实时行情 + 前复权日线（腾讯公开接口）
     indicators.mjs    指标：纯函数，MA/RSI/MACD/波动率/回撤
   agent/
-    tools.mjs         六个 agent 工具 + 自选股 document
-    agent.mjs         CLI 入口
+    tools.mjs         采集工具 + 自选股/档案/去重 document + 系统提示词段落
+    subagent.mjs      背景子 agent：spawn / check / stop（每个子 agent 一个独立对话）
+    agent.mjs         CLI 入口：问一句 / 常驻 / 加自选 / 看历史
   model/
     local-provider.mjs  本地 OpenAI 兼容网关 provider
+  web/
+    server.mjs        HTTP 服务：SSE 推状态 + 收指令（本地，独占 storage）
+    index.html        单页前端，原生 JS，无构建步骤
+  monitor/
+    schedule.mjs      开市时段判断 + 整点对齐（纯函数）
+    news.mjs          新闻 + 公告采集（东财，带 id 去重）
 test/
   market.test.mjs     指标公式断言自检
-  recovery-test.mjs   崩溃恢复演示
+  recovery-test.mjs   崩溃恢复：工具跑一半杀进程，重开续跑
 ```
 
-状态存在 `stock.sqlite`，删掉就归零。指数、指标公式都是实测过的。
+状态存在 `stock.sqlite`（transcript + document 同一次原子 commit）。删掉就归零。
 
 ## 支持什么
 
@@ -80,12 +138,26 @@ test/
 
 | 机制 | 在哪里 |
 |---|---|
-| 工具是独立 durable task | 每个 `defineTool` |
-| 崩溃恢复 | `harness.resume()` + `replay: "safe"` |
-| 提交幂等 | `requestId` |
-| 应用状态与 transcript 同一次原子提交 | `defineDoc(Watchlist)` + `api.commit` |
-| 系统提示词实时反映状态 | `section("watchlist", ...)` 每次请求重渲染 |
+| 工具是独立 durable task | 每个 `defineTool`；只读的 `replay: "safe"` |
+| 有副作用的工具不自动重放 | `watch` / `save_finding` 不声明 `replay` |
+| **子 agent = 工具调用拥有的子对话** | `subagent.mjs`：`tx.createConversation({ ownership: { kind: "task", taskId: api.taskId } })` |
+| 子对话重跑时复用而非重建 | `tx.scanConversations({ ownerTaskId: api.taskId })` |
+| 崩溃恢复 | `harness.resume()`，已实测：工具跑一半 `exit(9)` → 重开 `status: done` |
+| 提交幂等 | `requestId`（子 agent 用 `subagent:${api.taskId}`） |
+| 应用状态与 transcript 同一次原子提交 | `defineDoc(Watchlist/Findings/SeenItems)` + `api.commit` |
+| 系统提示词实时反映状态 | `section("watchlist")` / `section("findings")` 每次请求重渲染 |
 | 可观测 | `viewState` / `snapshot` / `usage` / `taskGraph` |
+
+## 已知的库限制（实测）
+
+**pi-durable 1.2.0 的自定义 `defineTask` 自循环会崩 storage。**
+一个 `defineTask` 在单个调用里反复 commit `running → running`（比如写个定时循环 task），
+会让 `SessionFailed: storage error`（`storage/memory.js` 的 `taskIdsByStatus` 索引未维护），
+而 storage 错误按库的设计**终结整个 Harness**。
+
+所以这里**不用自定义 task 驱动循环**——循环是模型驱动的（它调工具、调子 agent），
+走的是库内置的 `pi.generation` / `pi.tool` task，那些是好的。
+这也正好是想要的形态：**循环是模型的事，不是代码的事**。
 
 ## 模型
 

@@ -1,9 +1,8 @@
 # 依赖
 node_modules/
 
-# 运行产生的状态（本地对话历史、自选股）
+# 运行产生的状态（本地对话历史、自选股、崩溃恢复测试库）
 *.sqlite
-*.sqlite-*
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm

@@ -36,6 +36,9 @@ assert.equal(toTencentSymbol("688981"), "sh688981"); // 科创板
 assert.equal(toTencentSymbol("000001"), "sz000001"); // 深市主板
 assert.equal(toTencentSymbol("300750"), "sz300750"); // 创业板
 assert.equal(toTencentSymbol("830799"), "bj830799"); // 北交所
+assert.equal(toTencentSymbol("510300"), "sh510300"); // 沪市 ETF
+assert.equal(toTencentSymbol("588000"), "sh588000"); // 科创50 ETF
+assert.equal(toTencentSymbol("159915"), "sz159915"); // 深市 ETF（曾是 bug：被误判为沪市）
 assert.equal(toTencentSymbol("sh600519"), "sh600519");
 assert.equal(toTencentSymbol("上证"), "sh000001");
 assert.throws(() => toTencentSymbol("AAPL"), /无法识别/); // 拒绝非 A 股

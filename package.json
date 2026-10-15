@@ -1,13 +1,16 @@
 {
   "name": "ashare-agent",
   "version": "1.0.0",
-  "description": "A 股分析 agent，基于 @earendil-works/pi-durable",
+  "description": "A 股研究助理，基于 @earendil-works/pi-durable 的 durable agent",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node test/market.test.mjs",
     "start": "node src/agent/agent.mjs",
-    "recovery": "node test/recovery-test.mjs"
+    "web": "node src/web/server.mjs",
+    "watch": "node src/agent/agent.mjs --watch",
+    "history": "node src/agent/agent.mjs --history",
+    "recovery": "node test/recovery-test.mjs --crash && node test/recovery-test.mjs"
   },
   "license": "MIT",
   "dependencies": {
